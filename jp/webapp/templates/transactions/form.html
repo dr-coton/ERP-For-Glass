@@ -1,0 +1,108 @@
+{% extends "layout.html" %}
+{% block title %}{% if mode == 'edit' %}거래명세서 수정{% else %}새 거래명세서{% endif %}{% endblock %}
+
+{% block content %}
+<h1 class="h3 mb-4">{% if mode == 'edit' %}거래명세서 수정{% else %}새 거래명세서{% endif %}</h1>
+
+<form method="post" novalidate>
+  <div class="row g-3 mb-4">
+    <div class="col-md-6">
+      <label class="form-label" for="customer_name">거래처</label>
+      <select class="form-select" id="customer_name" name="customer_name" required>
+        <option value="">거래처 선택</option>
+        {% for customer in customers %}
+          <option value="{{ customer }}" {% if customer == form_state.customer_name %}selected{% endif %}>{{ customer }}</option>
+        {% endfor %}
+      </select>
+    </div>
+    <div class="col-12">
+      <label class="form-label" for="memo">메모</label>
+      <textarea class="form-control" id="memo" name="memo" rows="3" placeholder="메모를 입력하세요">{{ form_state.memo }}</textarea>
+    </div>
+  </div>
+
+  <section class="mb-3">
+    <div class="d-flex justify-content-between align-items-center mb-2">
+      <h2 class="h5 mb-0">거래 항목</h2>
+      <button class="btn btn-outline-secondary btn-sm" type="button" id="add-item">항목 추가</button>
+    </div>
+
+    <div class="table-responsive">
+      <table class="table table-bordered align-middle" id="items-table">
+        <thead class="table-light">
+          <tr>
+            <th scope="col">날짜</th>
+            <th scope="col">품목</th>
+            <th scope="col">단가 종류</th>
+            <th scope="col">가로(mm)</th>
+            <th scope="col">세로(mm)</th>
+            <th scope="col">수량</th>
+            <th scope="col" class="text-end">단가</th>
+            <th scope="col" class="text-end">공급가액</th>
+            <th scope="col" class="text-center">작업</th>
+          </tr>
+        </thead>
+        <tbody id="items-body">
+        </tbody>
+      </table>
+    </div>
+    <p class="text-end fw-semibold">총 공급가액: <span id="items-total">0</span> 원</p>
+  </section>
+
+{% if mode == 'edit' %}
+  {% set cancel_url = url_for('transactions.view_transaction', transaction_id=transaction.id) %}
+{% else %}
+  {% set cancel_url = url_for('transactions.index') %}
+{% endif %}
+  <div class="d-flex gap-2">
+    <button class="btn btn-primary" type="submit">{% if mode == 'edit' %}수정 완료{% else %}저장{% endif %}</button>
+    <a class="btn btn-outline-secondary" href="{{ cancel_url }}">취소</a>
+  </div>
+</form>
+
+<template id="item-row-template">
+  <tr>
+    <td>
+      <input class="form-control" name="item_date[]" type="date" required>
+    </td>
+    <td>
+      <select class="form-select" name="item_product[]" required>
+        <option value="">선택</option>
+        {% for product, pricing in product_pricing.items() %}
+          <option value="{{ product }}">{{ product }}</option>
+        {% endfor %}
+      </select>
+    </td>
+    <td>
+      <select class="form-select" name="item_price_type[]" required>
+        <option value="">선택</option>
+        {% for price_type in price_types %}
+          <option value="{{ price_type }}">{{ price_type }}</option>
+        {% endfor %}
+      </select>
+    </td>
+    <td>
+      <input class="form-control" name="item_width[]" type="number" min="1" step="1" required>
+    </td>
+    <td>
+      <input class="form-control" name="item_height[]" type="number" min="1" step="1" required>
+    </td>
+    <td>
+      <input class="form-control" name="item_quantity[]" type="number" min="1" step="1" required>
+    </td>
+    <td class="text-end"><span class="unit-price">0</span></td>
+    <td class="text-end"><span class="supply-price">0</span></td>
+    <td class="text-center">
+      <button class="btn btn-outline-danger btn-sm remove-item" type="button">삭제</button>
+    </td>
+  </tr>
+</template>
+{% endblock %}
+
+{% block scripts %}
+  <script>
+    window.PRODUCT_PRICING = {{ product_pricing | tojson }};
+    window.EXISTING_ITEMS = {{ form_state.items | tojson }};
+  </script>
+  <script src="{{ url_for('static', filename='js/transaction_form.js') }}"></script>
+{% endblock %}

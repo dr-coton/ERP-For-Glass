@@ -1,0 +1,87 @@
+{% extends "layout.html" %}
+{% block title %}거래명세서 목록{% endblock %}
+
+{% block content %}
+<div class="d-flex justify-content-between align-items-center mb-4">
+  <h1 class="h3 mb-0">거래명세서 목록</h1>
+  <a class="btn btn-primary" href="{{ url_for('transactions.create_transaction') }}">새 거래명세서</a>
+</div>
+
+<form class="row gy-2 gx-2 align-items-end mb-4" method="get" action="{{ url_for('transactions.index') }}">
+  <div class="col-sm-6 col-md-4">
+    <label class="form-label" for="query">검색 (거래처/메모)</label>
+    <input class="form-control" id="query" name="q" type="search" value="{{ query }}" placeholder="검색어 입력">
+  </div>
+  <div class="col-sm-4 col-md-3">
+    <label class="form-label" for="month">월별 필터</label>
+    <select class="form-select" id="month" name="month">
+      <option value="">전체</option>
+      {% for month in months %}
+        <option value="{{ month }}" {% if month == month_filter %}selected{% endif %}>{{ month }}</option>
+      {% endfor %}
+    </select>
+  </div>
+  <div class="col-auto">
+    <button class="btn btn-secondary" type="submit">적용</button>
+  </div>
+  <div class="col-auto">
+    <a class="btn btn-outline-secondary" href="{{ url_for('transactions.index') }}">초기화</a>
+  </div>
+</form>
+
+<div class="d-flex justify-content-end mb-3">
+  <form class="d-flex gap-2" method="get" action="{{ url_for('transactions.download_monthly') }}">
+    <select class="form-select" name="month" required>
+      <option value="">월 선택</option>
+      {% for month in months %}
+        <option value="{{ month }}">{{ month }}</option>
+      {% endfor %}
+    </select>
+    <button class="btn btn-outline-primary" type="submit">월별 다운로드</button>
+  </form>
+</div>
+
+<div class="table-responsive">
+  <table class="table table-hover align-middle">
+    <thead class="table-light">
+      <tr>
+        <th scope="col">번호</th>
+        <th scope="col">작성일</th>
+        <th scope="col">거래처</th>
+        <th scope="col" class="text-end">총 금액</th>
+        <th scope="col">메모</th>
+        <th scope="col" class="text-center">항목 수</th>
+        <th scope="col" class="text-center">작업</th>
+      </tr>
+    </thead>
+    <tbody>
+      {% if transactions %}
+        {% for tx in transactions %}
+          <tr>
+            <td>{{ tx.id }}</td>
+            <td>{{ tx.display_date }}</td>
+            <td>{{ tx.customer_name }}</td>
+            <td class="text-end">{{ '{:,}'.format(tx.total_amount) }}</td>
+            <td>{{ tx.memo }}</td>
+            <td class="text-center">{{ tx.item_count }}</td>
+            <td class="text-center">
+              <div class="btn-group btn-group-sm" role="group">
+                <a class="btn btn-outline-secondary" href="{{ url_for('transactions.view_transaction', transaction_id=tx.id) }}">상세</a>
+                <a class="btn btn-outline-secondary" href="{{ url_for('transactions.edit_transaction', transaction_id=tx.id) }}">수정</a>
+                <a class="btn btn-outline-secondary" href="{{ url_for('transactions.download_transaction', transaction_id=tx.id) }}">다운로드</a>
+              </div>
+              <form class="d-inline" method="post" action="{{ url_for('transactions.delete_transaction', transaction_id=tx.id) }}" onsubmit="return confirm('정말 삭제하시겠습니까?');">
+                <button class="btn btn-outline-danger btn-sm ms-1" type="submit">삭제</button>
+              </form>
+            </td>
+          </tr>
+        {% endfor %}
+      {% else %}
+        <tr>
+          <td class="text-center" colspan="7">조건에 해당하는 거래명세서가 없습니다.</td>
+        </tr>
+      {% endif %}
+    </tbody>
+  </table>
+</div>
+{% endblock %}

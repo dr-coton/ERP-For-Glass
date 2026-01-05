@@ -1,0 +1,17 @@
+body {
+  background-color: #f8f9fb;
+}
+
+main {
+  min-height: 70vh;
+}
+
+.table td,
+.table th {
+  vertical-align: middle;
+}
+
+.btn-group form,
+form.d-inline {
+  margin: 0;
+}
