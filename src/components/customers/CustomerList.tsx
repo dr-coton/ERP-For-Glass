@@ -63,6 +63,10 @@ export default function CustomerList() {
         columns={columns}
         data={customers}
         onRowClick={(item) => setSelectedId(item.business_id)}
+        onRowDoubleClick={(item) => {
+          setEditingCustomer(item);
+          setIsFormOpen(true);
+        }}
         selectedId={selectedId ?? undefined}
         emptyMessage="등록된 거래처가 없습니다."
       />

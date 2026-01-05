@@ -39,9 +39,10 @@ export default function TransactionList() {
     setIsFormOpen(true);
   };
 
-  const handleEdit = () => {
-    if (selectedId) {
-      setEditingId(selectedId);
+  const handleView = (id?: number) => {
+    const targetId = id ?? selectedId;
+    if (targetId) {
+      setEditingId(targetId);
       setIsFormOpen(true);
     }
   };
@@ -53,19 +54,20 @@ export default function TransactionList() {
     }
   };
 
-  const handleDownload = async () => {
-    if (!selectedId) return;
+  const handleDownload = async (id?: number) => {
+    const targetId = id ?? selectedId;
+    if (!targetId) return;
 
-    const selected = transactions.find((t) => t.id === selectedId);
+    const selected = transactions.find((t) => t.id === targetId);
     if (!selected) return;
 
     const path = await save({
-      defaultPath: `${selectedId}_${selected.display_date}_${selected.customer_name}.xlsx`,
+      defaultPath: `거래명세서_${selected.display_date}_${selected.customer_name}.xlsx`,
       filters: [{ name: 'Excel', extensions: ['xlsx'] }],
     });
 
     if (path) {
-      await downloadExcel(selectedId, path);
+      await downloadExcel(targetId, path);
     }
   };
 
@@ -91,6 +93,26 @@ export default function TransactionList() {
       render: (item: TransactionSummary) => formatAmount(item.total_amount),
     },
     { key: 'memo', header: '메모' },
+    {
+      key: 'actions',
+      header: '',
+      width: '80px',
+      align: 'center' as const,
+      render: (item: TransactionSummary) => (
+        <button
+          onClick={(e) => {
+            e.stopPropagation();
+            handleDownload(item.id);
+          }}
+          className="p-1.5 text-gray-500 hover:text-gray-700 hover:bg-gray-100 rounded"
+          title="다운로드"
+        >
+          <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M4 16v1a3 3 0 003 3h10a3 3 0 003-3v-1m-4-4l-4 4m0 0l-4-4m4 4V4" />
+          </svg>
+        </button>
+      ),
+    },
   ];
 
   return (
@@ -126,6 +148,7 @@ export default function TransactionList() {
         columns={columns}
         data={transactions}
         onRowClick={(item) => setSelectedId(item.id)}
+        onRowDoubleClick={(item) => handleView(item.id)}
         selectedId={selectedId ?? undefined}
         emptyMessage="거래명세서가 없습니다."
       />
@@ -133,10 +156,10 @@ export default function TransactionList() {
       {/* Action Buttons */}
       {selectedId && (
         <div className="flex items-center gap-2">
-          <Button variant="secondary" onClick={handleEdit}>
-            수정
+          <Button variant="secondary" onClick={() => handleView()}>
+            상세보기
           </Button>
-          <Button variant="secondary" onClick={handleDownload}>
+          <Button variant="secondary" onClick={() => handleDownload()}>
             다운로드
           </Button>
           <Button variant="danger" onClick={handleDelete}>

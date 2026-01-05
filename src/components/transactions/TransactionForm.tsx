@@ -40,6 +40,7 @@ export default function TransactionForm({
   const [itemWidth, setItemWidth] = useState('');
   const [itemHeight, setItemHeight] = useState('');
   const [itemQuantity, setItemQuantity] = useState('');
+  const [itemUnitPrice, setItemUnitPrice] = useState('');
 
   useEffect(() => {
     fetchCustomers();
@@ -49,6 +50,32 @@ export default function TransactionForm({
       loadTransaction(transactionId);
     }
   }, [transactionId]);
+
+  // 단가 자동 계산
+  useEffect(() => {
+    const autoCalculate = async () => {
+      if (!itemProduct || !itemWidth || !itemHeight) {
+        return;
+      }
+      try {
+        const product = await getProduct(itemProduct);
+        const priceMap: Record<PriceType, number> = {
+          '제작가': product.production_price,
+          '일면(500)': product.single_side_price,
+          '양면(700)': product.double_side_price,
+          '직매': product.direct_price,
+        };
+        const basePrice = priceMap[itemPriceType];
+        const width = parseInt(itemWidth);
+        const height = parseInt(itemHeight);
+        const calculatedPrice = Math.floor((basePrice * width * height) / 90000);
+        setItemUnitPrice(String(calculatedPrice));
+      } catch {
+        // 상품을 찾지 못한 경우 무시
+      }
+    };
+    autoCalculate();
+  }, [itemProduct, itemPriceType, itemWidth, itemHeight, getProduct]);
 
   const loadTransaction = async (id: number) => {
     const tx = await fetchTransaction(id);
@@ -66,35 +93,7 @@ export default function TransactionForm({
     setCustomerLocked(true);
   };
 
-  const calculatePrice = async () => {
-    if (!itemProduct || !itemWidth || !itemHeight || !itemQuantity) {
-      return { unitPrice: 0, supplyPrice: 0 };
-    }
-
-    try {
-      const product = await getProduct(itemProduct);
-      const priceMap: Record<PriceType, number> = {
-        '제작가': product.production_price,
-        '일면(500)': product.single_side_price,
-        '양면(700)': product.double_side_price,
-        '직매': product.direct_price,
-      };
-
-      const basePrice = priceMap[itemPriceType];
-      const width = parseInt(itemWidth);
-      const height = parseInt(itemHeight);
-      const quantity = parseInt(itemQuantity);
-
-      const unitPrice = Math.floor((basePrice * width * height) / 90000);
-      const supplyPrice = unitPrice * quantity;
-
-      return { unitPrice, supplyPrice };
-    } catch {
-      return { unitPrice: 0, supplyPrice: 0 };
-    }
-  };
-
-  const handleAddItem = async () => {
+  const handleAddItem = () => {
     if (!itemProduct) {
       alert('상품을 선택하세요.');
       return;
@@ -111,8 +110,14 @@ export default function TransactionForm({
       alert('수량을 입력하세요.');
       return;
     }
+    if (!itemUnitPrice) {
+      alert('단가를 입력하세요.');
+      return;
+    }
 
-    const { unitPrice, supplyPrice } = await calculatePrice();
+    const unitPrice = parseInt(itemUnitPrice);
+    const quantity = parseInt(itemQuantity);
+    const supplyPrice = unitPrice * quantity;
 
     const newItem: TransactionItem = {
       date: itemDate,
@@ -120,7 +125,7 @@ export default function TransactionForm({
       price_type: itemPriceType,
       width: parseInt(itemWidth),
       height: parseInt(itemHeight),
-      quantity: parseInt(itemQuantity),
+      quantity: quantity,
       unit_price: unitPrice,
       supply_price: supplyPrice,
     };
@@ -131,10 +136,31 @@ export default function TransactionForm({
     setItemWidth('');
     setItemHeight('');
     setItemQuantity('');
+    setItemUnitPrice('');
   };
 
   const handleRemoveItem = (index: number) => {
     setItems(items.filter((_, i) => i !== index));
+  };
+
+  const handleUpdateItemUnitPrice = (index: number, newUnitPrice: number) => {
+    setItems(items.map((item, i) => {
+      if (i === index) {
+        const supplyPrice = newUnitPrice * item.quantity;
+        return { ...item, unit_price: newUnitPrice, supply_price: supplyPrice };
+      }
+      return item;
+    }));
+  };
+
+  const handleUpdateItemQuantity = (index: number, newQuantity: number) => {
+    setItems(items.map((item, i) => {
+      if (i === index) {
+        const supplyPrice = item.unit_price * newQuantity;
+        return { ...item, quantity: newQuantity, supply_price: supplyPrice };
+      }
+      return item;
+    }));
   };
 
   const totalAmount = items.reduce((sum, item) => sum + item.supply_price, 0);
@@ -208,47 +234,63 @@ export default function TransactionForm({
             <div className="p-4 border border-gray-200 rounded-lg space-y-4">
               <h3 className="font-medium text-gray-900">항목 입력</h3>
 
-              <div className="grid grid-cols-6 gap-3">
-                <Input
-                  label="날짜"
-                  type="date"
-                  value={itemDate}
-                  onChange={(e) => setItemDate(e.target.value)}
-                />
-                <Select
-                  label="상품"
-                  options={products.map((p) => ({
-                    value: p.name,
-                    label: p.name,
-                  }))}
-                  value={itemProduct}
-                  onChange={(e) => setItemProduct(e.target.value)}
-                  placeholder="선택"
-                />
-                <Select
-                  label="단가 종류"
-                  options={PRICE_TYPES.map((t) => ({ value: t, label: t }))}
-                  value={itemPriceType}
-                  onChange={(e) => setItemPriceType(e.target.value as PriceType)}
-                />
-                <Input
-                  label="가로 (mm)"
-                  type="number"
-                  value={itemWidth}
-                  onChange={(e) => setItemWidth(e.target.value)}
-                />
-                <Input
-                  label="세로 (mm)"
-                  type="number"
-                  value={itemHeight}
-                  onChange={(e) => setItemHeight(e.target.value)}
-                />
-                <Input
-                  label="수량"
-                  type="number"
-                  value={itemQuantity}
-                  onChange={(e) => setItemQuantity(e.target.value)}
-                />
+              <div className="space-y-3">
+                {/* 첫 번째 줄: 날짜, 상품, 단가 종류 */}
+                <div className="grid grid-cols-3 gap-3">
+                  <Input
+                    label="날짜"
+                    type="date"
+                    value={itemDate}
+                    onChange={(e) => setItemDate(e.target.value)}
+                  />
+                  <Select
+                    label="상품"
+                    options={products.map((p) => ({
+                      value: p.name,
+                      label: p.name,
+                    }))}
+                    value={itemProduct}
+                    onChange={(e) => setItemProduct(e.target.value)}
+                    placeholder="선택"
+                  />
+                  <Select
+                    label="단가 종류"
+                    options={PRICE_TYPES.map((t) => ({ value: t, label: t }))}
+                    value={itemPriceType}
+                    onChange={(e) => setItemPriceType(e.target.value as PriceType)}
+                  />
+                </div>
+                {/* 두 번째 줄: 가로, 세로, 수량, 단가 */}
+                <div className="grid grid-cols-4 gap-3">
+                  <Input
+                    label="가로 (mm)"
+                    type="number"
+                    value={itemWidth}
+                    onChange={(e) => setItemWidth(e.target.value)}
+                    placeholder="0"
+                  />
+                  <Input
+                    label="세로 (mm)"
+                    type="number"
+                    value={itemHeight}
+                    onChange={(e) => setItemHeight(e.target.value)}
+                    placeholder="0"
+                  />
+                  <Input
+                    label="수량"
+                    type="number"
+                    value={itemQuantity}
+                    onChange={(e) => setItemQuantity(e.target.value)}
+                    placeholder="0"
+                  />
+                  <Input
+                    label="단가 (원)"
+                    type="number"
+                    value={itemUnitPrice}
+                    onChange={(e) => setItemUnitPrice(e.target.value)}
+                    placeholder="0"
+                  />
+                </div>
               </div>
 
               <Button onClick={handleAddItem} variant="secondary">
@@ -287,9 +329,22 @@ export default function TransactionForm({
                         <td className="py-2 px-3 text-center">
                           {item.width} x {item.height}
                         </td>
-                        <td className="py-2 px-3 text-right">{item.quantity}</td>
-                        <td className="py-2 px-3 text-right">
-                          {formatNumber(item.unit_price)}
+                        <td className="py-1.5 px-2">
+                          <input
+                            type="number"
+                            value={item.quantity}
+                            onChange={(e) => handleUpdateItemQuantity(index, parseInt(e.target.value) || 0)}
+                            className="w-20 h-8 px-2 text-right text-sm border border-gray-300 rounded-lg bg-white focus:outline-none focus:ring-2 focus:ring-gray-900 focus:border-transparent"
+                            min="1"
+                          />
+                        </td>
+                        <td className="py-1.5 px-2">
+                          <input
+                            type="number"
+                            value={item.unit_price}
+                            onChange={(e) => handleUpdateItemUnitPrice(index, parseInt(e.target.value) || 0)}
+                            className="w-24 h-8 px-2 text-right text-sm border border-gray-300 rounded-lg bg-white focus:outline-none focus:ring-2 focus:ring-gray-900 focus:border-transparent"
+                          />
                         </td>
                         <td className="py-2 px-3 text-right">
                           {formatNumber(item.supply_price)}

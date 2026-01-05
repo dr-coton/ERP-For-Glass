@@ -51,6 +51,21 @@ pub fn init_db(conn: &Connection) -> Result<()> {
 
         CREATE INDEX IF NOT EXISTS idx_transactions_created_at
         ON transactions(created_at);
+
+        -- 공급자(판매자) 설정 테이블
+        CREATE TABLE IF NOT EXISTS supplier_settings (
+            id INTEGER PRIMARY KEY CHECK (id = 1),
+            business_id TEXT NOT NULL DEFAULT '',
+            company_name TEXT NOT NULL DEFAULT '',
+            representative TEXT NOT NULL DEFAULT '',
+            address TEXT NOT NULL DEFAULT '',
+            phone TEXT NOT NULL DEFAULT '',
+            fax TEXT DEFAULT ''
+        );
+
+        -- 기본 공급자 설정 삽입 (없을 경우에만)
+        INSERT OR IGNORE INTO supplier_settings (id, business_id, company_name, representative, address, phone, fax)
+        VALUES (1, '', '', '', '', '', '');
         "
     )?;
 

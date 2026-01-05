@@ -1,6 +1,6 @@
 {
   "$schema": "https://schema.tauri.app/config/2",
-  "productName": "거래명세서 관리",
+  "productName": "황제유리 ERP",
   "version": "1.0.0",
   "identifier": "com.erp.glass",
   "build": {
@@ -12,7 +12,7 @@
   "app": {
     "windows": [
       {
-        "title": "거래명세서 관리 시스템",
+        "title": "황제유리 ERP",
         "width": 1280,
         "height": 800,
         "minWidth": 1024,

@@ -15,6 +15,8 @@ interface TableProps {
   data: any[];
   // eslint-disable-next-line @typescript-eslint/no-explicit-any
   onRowClick?: (item: any) => void;
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any
+  onRowDoubleClick?: (item: any) => void;
   selectedId?: number | string;
   emptyMessage?: string;
 }
@@ -23,6 +25,7 @@ export default function Table({
   columns,
   data,
   onRowClick,
+  onRowDoubleClick,
   selectedId,
   emptyMessage = '데이터가 없습니다.',
 }: TableProps) {
@@ -67,8 +70,9 @@ export default function Table({
                 <tr
                   key={String(itemId)}
                   onClick={() => onRowClick?.(item)}
+                  onDoubleClick={() => onRowDoubleClick?.(item)}
                   className={`
-                    ${onRowClick ? 'cursor-pointer hover:bg-gray-50' : ''}
+                    ${onRowClick || onRowDoubleClick ? 'cursor-pointer hover:bg-gray-50' : ''}
                     ${selectedId === itemId ? 'bg-primary-50' : 'bg-white'}
                     transition-colors
                   `}

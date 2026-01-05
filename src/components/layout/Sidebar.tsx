@@ -55,7 +55,7 @@ export default function Sidebar({ currentView, onViewChange }: SidebarProps) {
     <aside className="w-56 bg-white border-r border-gray-200 flex flex-col">
       {/* Logo */}
       <div className="h-14 flex items-center px-4 border-b border-gray-100">
-        <h1 className="text-lg font-semibold text-gray-900">ERP Glass</h1>
+        <h1 className="text-lg font-semibold text-gray-900">황제유리 ERP</h1>
       </div>
 
       {/* Navigation */}

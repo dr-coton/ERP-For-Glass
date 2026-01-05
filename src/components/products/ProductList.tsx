@@ -15,7 +15,7 @@ export default function ProductList() {
     exportCsv,
   } = useProductStore();
 
-  const [selectedName, setSelectedName] = useState<string | null>(null);
+  const [selectedId, setSelectedId] = useState<number | null>(null);
   const [isFormOpen, setIsFormOpen] = useState(false);
   const [editingProduct, setEditingProduct] = useState<Product | null>(null);
 
@@ -29,7 +29,7 @@ export default function ProductList() {
   };
 
   const handleEdit = () => {
-    const product = products.find((p) => p.name === selectedName);
+    const product = products.find((p) => p.id === selectedId);
     if (product) {
       setEditingProduct(product);
       setIsFormOpen(true);
@@ -37,9 +37,10 @@ export default function ProductList() {
   };
 
   const handleDelete = async () => {
-    if (selectedName && confirm('선택한 상품을 삭제하시겠습니까?')) {
-      await removeProduct(selectedName);
-      setSelectedName(null);
+    const product = products.find((p) => p.id === selectedId);
+    if (product && confirm('선택한 상품을 삭제하시겠습니까?')) {
+      await removeProduct(product.name);
+      setSelectedId(null);
     }
   };
 
@@ -136,13 +137,17 @@ export default function ProductList() {
       <Table
         columns={columns}
         data={products}
-        onRowClick={(item) => setSelectedName(item.name)}
-        selectedId={selectedName ?? undefined}
+        onRowClick={(item) => setSelectedId(item.id)}
+        onRowDoubleClick={(item) => {
+          setEditingProduct(item);
+          setIsFormOpen(true);
+        }}
+        selectedId={selectedId ?? undefined}
         emptyMessage="등록된 상품이 없습니다."
       />
 
       {/* Action Buttons */}
-      {selectedName && (
+      {selectedId && (
         <div className="flex items-center gap-2">
           <Button variant="secondary" onClick={handleEdit}>
             수정

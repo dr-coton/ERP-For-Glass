@@ -51,6 +51,9 @@ pub fn run() {
             commands::export_database,
             commands::import_database,
             commands::get_database_path,
+            // Settings
+            commands::get_supplier_settings,
+            commands::update_supplier_settings,
         ])
         .run(tauri::generate_context!())
         .expect("error while running tauri application");

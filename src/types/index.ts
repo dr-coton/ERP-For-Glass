@@ -50,3 +50,12 @@ export interface TransactionSummary {
 }
 
 export type View = 'transactions' | 'customers' | 'products' | 'settings';
+
+export interface SupplierSettings {
+  business_id: string;
+  company_name: string;
+  representative: string;
+  address: string;
+  phone: string;
+  fax: string;
+}

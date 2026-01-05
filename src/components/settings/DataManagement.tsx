@@ -1,5 +1,5 @@
 import { useState, useEffect } from 'react';
-import { open, save } from '@tauri-apps/plugin-dialog';
+import { open, save, confirm as tauriConfirm } from '@tauri-apps/plugin-dialog';
 import Button from '../ui/Button';
 import * as api from '../../lib/tauri';
 
@@ -36,24 +36,27 @@ export default function DataManagement() {
   };
 
   const handleImport = async () => {
-    const confirmed = confirm(
-      '데이터베이스를 가져오면 현재 데이터가 모두 대체됩니다. 계속하시겠습니까?'
-    );
-    if (!confirmed) return;
+    try {
+      const confirmed = await tauriConfirm(
+        '데이터베이스를 가져오면 현재 데이터가 모두 대체됩니다. 계속하시겠습니까?',
+        { title: '데이터베이스 가져오기', kind: 'warning' }
+      );
+      if (!confirmed) return;
 
-    const path = await open({
-      filters: [{ name: 'SQLite Database', extensions: ['db'] }],
-    });
+      const path = await open({
+        multiple: false,
+        filters: [{ name: 'SQLite Database', extensions: ['db'] }],
+      });
 
-    if (path) {
-      try {
+      if (path) {
         await api.importDatabase(path as string);
         alert(
           '데이터베이스 가져오기가 완료되었습니다. 변경사항을 적용하려면 앱을 재시작하세요.'
         );
-      } catch (error) {
-        alert('가져오기 중 오류가 발생했습니다: ' + error);
       }
+    } catch (error) {
+      console.error('Import error:', error);
+      alert('가져오기 중 오류가 발생했습니다: ' + error);
     }
   };
 

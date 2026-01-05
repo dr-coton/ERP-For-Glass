@@ -4,7 +4,10 @@ use tauri::{AppHandle, Manager};
 
 use crate::db::DbState;
 use crate::error::{AppError, Result};
-use crate::services::excel::{create_monthly_report, TransactionData, TransactionItemData};
+use crate::services::excel::{
+    create_monthly_report, write_single_transaction_legacy,
+    TransactionData, TransactionItemData, SupplierInfo,
+};
 
 #[derive(Debug, Clone, Serialize, Deserialize)]
 pub struct TransactionItem {
@@ -343,21 +346,50 @@ pub fn download_transaction_excel(
     let state = app_handle.state::<DbState>();
     let conn = state.0.lock().unwrap();
 
-    // 거래명세서 기본 정보 조회
-    let (customer_name, total_amount, _memo, address, phone): (
+    // 공급자 정보 조회
+    let supplier: Option<SupplierInfo> = conn
+        .query_row(
+            "SELECT business_id, company_name, representative, address, phone, fax
+             FROM supplier_settings WHERE id = 1",
+            [],
+            |row| {
+                Ok(SupplierInfo {
+                    business_id: row.get(0)?,
+                    company_name: row.get(1)?,
+                    representative: row.get(2)?,
+                    address: row.get(3)?,
+                    phone: row.get(4)?,
+                    fax: row.get::<_, Option<String>>(5)?.unwrap_or_default(),
+                })
+            },
+        )
+        .ok();
+
+    // 거래명세서 기본 정보 조회 (고객 정보 포함)
+    let (customer_name, total_amount, _memo, customer_business_id, customer_representative, address, phone): (
         String,
         i64,
         Option<String>,
         Option<String>,
         Option<String>,
+        Option<String>,
+        Option<String>,
     ) = conn.query_row(
         "SELECT t.customer_name, t.total_amount, t.memo,
-                c.address, c.phone
+                c.business_id, c.representative, c.address, c.phone
          FROM transactions t
          LEFT JOIN customers c ON t.customer_name = c.company_name
          WHERE t.id = ?1",
         [id],
-        |row| Ok((row.get(0)?, row.get(1)?, row.get(2)?, row.get(3)?, row.get(4)?)),
+        |row| Ok((
+            row.get(0)?,
+            row.get(1)?,
+            row.get(2)?,
+            row.get(3)?,
+            row.get(4)?,
+            row.get(5)?,
+            row.get(6)?,
+        )),
     )?;
 
     // 항목 조회
@@ -380,37 +412,21 @@ pub fn download_transaction_excel(
         })?
         .collect::<std::result::Result<Vec<_>, _>>()?;
 
-    // 템플릿 로드 시도
-    let template_path = app_handle
-        .path()
-        .resource_dir()
-        .ok()
-        .map(|p| p.join("templates/transaction_template.xlsx"));
-
-    let mut workbook = if let Some(ref path) = template_path {
-        if path.exists() {
-            // 템플릿이 있으면 복사해서 사용
-            std::fs::copy(path, &save_path)?;
-            // rust_xlsxwriter는 기존 파일 수정을 지원하지 않으므로 새로 생성
-            Workbook::new()
-        } else {
-            Workbook::new()
-        }
-    } else {
-        Workbook::new()
-    };
-
+    let mut workbook = Workbook::new();
     let worksheet = workbook.add_worksheet();
     worksheet.set_name("거래명세서")?;
 
-    crate::services::excel::write_single_transaction(
+    write_single_transaction_legacy(
         worksheet,
         id,
         &customer_name,
+        customer_business_id.as_deref(),
+        customer_representative.as_deref(),
         &address.unwrap_or_default(),
         &phone.unwrap_or_default(),
         total_amount,
         &items,
+        supplier,
     )?;
 
     workbook.save(&save_path)?;

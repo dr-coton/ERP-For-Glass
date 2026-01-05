@@ -4,7 +4,7 @@ import Header from './components/layout/Header';
 import TransactionList from './components/transactions/TransactionList';
 import CustomerList from './components/customers/CustomerList';
 import ProductList from './components/products/ProductList';
-import DataManagement from './components/settings/DataManagement';
+import Settings from './components/settings/Settings';
 
 type View = 'transactions' | 'customers' | 'products' | 'settings';
 
@@ -20,7 +20,7 @@ function App() {
       case 'products':
         return <ProductList />;
       case 'settings':
-        return <DataManagement />;
+        return <Settings />;
       default:
         return <TransactionList />;
     }
