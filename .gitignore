@@ -91,3 +91,7 @@ logs/
 *.pem
 *.key
 secrets/
+
+# Rust / Tauri
+**/target/
+Cargo.lock
