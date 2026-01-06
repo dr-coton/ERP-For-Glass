@@ -5,8 +5,8 @@ import TransactionList from './components/transactions/TransactionList';
 import CustomerList from './components/customers/CustomerList';
 import ProductList from './components/products/ProductList';
 import Settings from './components/settings/Settings';
-
-type View = 'transactions' | 'customers' | 'products' | 'settings';
+import Statistics from './components/statistics/Statistics';
+import type { View } from './types';
 
 function App() {
   const [currentView, setCurrentView] = useState<View>('transactions');
@@ -21,6 +21,8 @@ function App() {
         return <ProductList />;
       case 'settings':
         return <Settings />;
+      case 'statistics':
+        return <Statistics />;
       default:
         return <TransactionList />;
     }

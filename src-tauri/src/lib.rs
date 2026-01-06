@@ -47,6 +47,9 @@ pub fn run() {
             commands::get_available_months,
             commands::download_monthly_excel,
             commands::download_transaction_excel,
+            // Statistics
+            commands::get_statistics,
+            commands::download_statistics_excel,
             // Database
             commands::export_database,
             commands::import_database,

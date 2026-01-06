@@ -4,8 +4,10 @@ pub mod types;
 pub mod builder;
 pub mod single;
 pub mod monthly;
+pub mod statistics;
 
 // 공개 API 재노출
 pub use types::{TransactionData, TransactionItemData, SupplierInfo, ReceiverInfo, SingleTransactionRequest};
 pub use single::{write_single_transaction, write_single_transaction_legacy};
 pub use monthly::create_monthly_report;
+pub use statistics::create_statistics_report;

@@ -49,7 +49,33 @@ export interface TransactionSummary {
   display_date: string;
 }
 
-export type View = 'transactions' | 'customers' | 'products' | 'settings';
+export type View = 'transactions' | 'customers' | 'products' | 'settings' | 'statistics';
+
+// Statistics Types
+export type PeriodType = 'daily' | 'weekly' | 'monthly' | 'custom';
+
+export interface StatisticsRequest {
+  period_type: PeriodType;
+  start_date: string;
+  end_date: string;
+  customer_name?: string | null;
+}
+
+export interface PeriodStatistics {
+  period_label: string;
+  period_start: string;
+  customer_name: string;
+  total_amount: number;
+  transaction_count: number;
+}
+
+export interface StatisticsResponse {
+  period_type: PeriodType;
+  start_date: string;
+  end_date: string;
+  data: PeriodStatistics[];
+  grand_total: number;
+}
 
 export interface SupplierSettings {
   business_id: string;
