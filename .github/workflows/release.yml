@@ -15,10 +15,6 @@ jobs:
         include:
           - platform: macos-latest
             args: --target aarch64-apple-darwin
-          - platform: macos-latest
-            args: --target x86_64-apple-darwin
-          - platform: ubuntu-22.04
-            args: ''
           - platform: windows-latest
             args: ''
 
@@ -27,12 +23,6 @@ jobs:
     steps:
       - name: Checkout repository
         uses: actions/checkout@v4
-
-      - name: Install dependencies (Ubuntu only)
-        if: matrix.platform == 'ubuntu-22.04'
-        run: |
-          sudo apt-get update
-          sudo apt-get install -y libwebkit2gtk-4.1-dev libappindicator3-dev librsvg2-dev patchelf
 
       - name: Setup Node.js
         uses: actions/setup-node@v4
@@ -63,10 +53,8 @@ jobs:
           releaseBody: |
             ## 다운로드
 
-            - **Windows**: `.msi` 또는 `.exe` 파일 다운로드
-            - **macOS (Apple Silicon)**: `aarch64.dmg` 파일 다운로드
-            - **macOS (Intel)**: `x64.dmg` 파일 다운로드
-            - **Linux**: `.deb` 또는 `.AppImage` 파일 다운로드
+            - **Windows**: `.exe` 파일 다운로드
+            - **macOS (Apple Silicon)**: `.dmg` 파일 다운로드
           releaseDraft: true
           prerelease: false
           args: ${{ matrix.args }}
