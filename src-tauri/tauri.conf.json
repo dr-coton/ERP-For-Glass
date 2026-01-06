@@ -27,7 +27,7 @@
   },
   "bundle": {
     "active": true,
-    "targets": "all",
+    "targets": ["nsis", "dmg", "deb", "appimage"],
     "icon": [
       "icons/32x32.png",
       "icons/128x128.png",
@@ -35,7 +35,13 @@
       "icons/icon.icns",
       "icons/icon.ico"
     ],
-    "resources": ["templates/*"]
+    "resources": ["templates/*"],
+    "windows": {
+      "nsis": {
+        "languages": ["Korean", "English"],
+        "displayLanguageSelector": false
+      }
+    }
   },
   "plugins": {}
 
