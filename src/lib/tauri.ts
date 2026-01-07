@@ -68,6 +68,10 @@ export async function deleteTransaction(id: number): Promise<void> {
   return invoke('delete_transaction', { id });
 }
 
+export async function markTransactionsPaid(ids: number[]): Promise<void> {
+  return invoke('mark_transactions_paid', { ids });
+}
+
 export async function getAvailableMonths(): Promise<string[]> {
   return invoke('get_available_months');
 }

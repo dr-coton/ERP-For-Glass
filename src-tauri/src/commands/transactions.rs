@@ -27,6 +27,7 @@ pub struct Transaction {
     pub id: Option<i64>,
     pub customer_name: String,
     pub total_amount: i64,
+    pub paid_amount: i64,
     pub memo: Option<String>,
     pub created_at: Option<String>,
     pub display_date: Option<String>,
@@ -38,6 +39,7 @@ pub struct TransactionSummary {
     pub id: i64,
     pub customer_name: String,
     pub total_amount: i64,
+    pub paid_amount: i64,
     pub memo: Option<String>,
     pub display_date: String,
 }
@@ -55,6 +57,7 @@ pub fn get_transactions(
             t.id,
             t.customer_name,
             t.total_amount,
+            t.paid_amount,
             t.memo,
             COALESCE(
                 (SELECT date FROM transaction_items WHERE transaction_id = t.id ORDER BY date ASC LIMIT 1),
@@ -72,8 +75,9 @@ pub fn get_transactions(
                 id: row.get(0)?,
                 customer_name: row.get(1)?,
                 total_amount: row.get(2)?,
-                memo: row.get(3)?,
-                display_date: row.get(4)?,
+                paid_amount: row.get(3)?,
+                memo: row.get(4)?,
+                display_date: row.get(5)?,
             })
         })?
         .collect::<std::result::Result<Vec<_>, _>>()?;
@@ -87,15 +91,16 @@ pub fn get_transaction(app_handle: AppHandle, id: i64) -> Result<Transaction> {
     let conn = state.0.lock().unwrap();
 
     let transaction = conn.query_row(
-        "SELECT id, customer_name, total_amount, memo, created_at FROM transactions WHERE id = ?1",
+        "SELECT id, customer_name, total_amount, paid_amount, memo, created_at FROM transactions WHERE id = ?1",
         [id],
         |row| {
             Ok(Transaction {
                 id: Some(row.get(0)?),
                 customer_name: row.get(1)?,
                 total_amount: row.get(2)?,
-                memo: row.get(3)?,
-                created_at: row.get(4)?,
+                paid_amount: row.get(3)?,
+                memo: row.get(4)?,
+                created_at: row.get(5)?,
                 display_date: None,
                 items: Vec::new(),
             })
@@ -137,11 +142,12 @@ pub fn create_transaction(app_handle: AppHandle, transaction: Transaction) -> Re
     let tx = conn.transaction()?;
 
     tx.execute(
-        "INSERT INTO transactions (customer_name, total_amount, memo, created_at)
-         VALUES (?1, ?2, ?3, datetime('now', 'localtime'))",
+        "INSERT INTO transactions (customer_name, total_amount, paid_amount, memo, created_at)
+         VALUES (?1, ?2, ?3, ?4, datetime('now', 'localtime'))",
         (
             &transaction.customer_name,
             transaction.total_amount,
+            transaction.paid_amount,
             &transaction.memo,
         ),
     )?;
@@ -187,10 +193,11 @@ pub fn update_transaction(app_handle: AppHandle, transaction: Transaction) -> Re
 
     // 거래명세서 업데이트
     tx.execute(
-        "UPDATE transactions SET customer_name = ?1, total_amount = ?2, memo = ?3 WHERE id = ?4",
+        "UPDATE transactions SET customer_name = ?1, total_amount = ?2, paid_amount = ?3, memo = ?4 WHERE id = ?5",
         (
             &transaction.customer_name,
             transaction.total_amount,
+            transaction.paid_amount,
             &transaction.memo,
             id,
         ),
@@ -229,6 +236,24 @@ pub fn delete_transaction(app_handle: AppHandle, id: i64) -> Result<()> {
 
     tx.execute("DELETE FROM transaction_items WHERE transaction_id = ?1", [id])?;
     tx.execute("DELETE FROM transactions WHERE id = ?1", [id])?;
+
+    tx.commit()?;
+    Ok(())
+}
+
+#[tauri::command]
+pub fn mark_transactions_paid(app_handle: AppHandle, ids: Vec<i64>) -> Result<()> {
+    let state = app_handle.state::<DbState>();
+    let mut conn = state.0.lock().unwrap();
+
+    let tx = conn.transaction()?;
+
+    for id in ids {
+        tx.execute(
+            "UPDATE transactions SET paid_amount = total_amount WHERE id = ?1",
+            [id],
+        )?;
+    }
 
     tx.commit()?;
     Ok(())

@@ -32,6 +32,7 @@ export default function TransactionForm({
   const [customerLocked, setCustomerLocked] = useState(false);
   const [memo, setMemo] = useState('');
   const [items, setItems] = useState<TransactionItem[]>([]);
+  const [paidAmount, setPaidAmount] = useState(0);
 
   // 항목 입력 상태
   const [itemDate, setItemDate] = useState(getToday());
@@ -83,6 +84,7 @@ export default function TransactionForm({
     setCustomerLocked(true);
     setMemo(tx.memo || '');
     setItems(tx.items);
+    setPaidAmount(tx.paid_amount);
   };
 
   const handleLockCustomer = () => {
@@ -179,6 +181,7 @@ export default function TransactionForm({
       id: transactionId ?? undefined,
       customer_name: customerName,
       total_amount: totalAmount,
+      paid_amount: paidAmount,
       memo: memo || undefined,
       items,
     };
@@ -366,9 +369,57 @@ export default function TransactionForm({
               </table>
             </div>
 
-            {/* 총 금액 */}
-            <div className="text-right text-lg font-semibold">
-              총 공급가액: {formatNumber(totalAmount)}원
+            {/* 결제 정보 */}
+            <div className="p-4 bg-gray-50 rounded-lg space-y-3">
+              <h3 className="font-medium text-gray-900">결제 정보</h3>
+              <div className="grid grid-cols-3 gap-4">
+                <div>
+                  <label className="block text-sm font-medium text-gray-700 mb-1">
+                    총 공급가액
+                  </label>
+                  <div className="h-10 px-3 flex items-center text-sm bg-gray-100 border border-gray-300 rounded-lg font-medium">
+                    {formatNumber(totalAmount)}원
+                  </div>
+                </div>
+                <div>
+                  <label className="block text-sm font-medium text-gray-700 mb-1">
+                    받은 금액
+                  </label>
+                  <input
+                    type="number"
+                    value={paidAmount}
+                    onChange={(e) => setPaidAmount(parseInt(e.target.value) || 0)}
+                    className="w-full h-10 px-3 text-sm border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-gray-900 focus:border-transparent"
+                    placeholder="0"
+                  />
+                </div>
+                <div>
+                  <label className="block text-sm font-medium text-gray-700 mb-1">
+                    미수금
+                  </label>
+                  <div className={`h-10 px-3 flex items-center text-sm border border-gray-300 rounded-lg font-medium ${
+                    totalAmount - paidAmount > 0 ? 'bg-red-50 text-red-700' : 'bg-green-50 text-green-700'
+                  }`}>
+                    {formatNumber(Math.max(0, totalAmount - paidAmount))}원
+                  </div>
+                </div>
+              </div>
+              <div className="flex gap-2">
+                <button
+                  type="button"
+                  onClick={() => setPaidAmount(totalAmount)}
+                  className="px-3 py-1.5 text-sm text-gray-600 hover:text-gray-900 hover:bg-gray-200 rounded-lg transition-colors"
+                >
+                  전액 완납
+                </button>
+                <button
+                  type="button"
+                  onClick={() => setPaidAmount(0)}
+                  className="px-3 py-1.5 text-sm text-gray-600 hover:text-gray-900 hover:bg-gray-200 rounded-lg transition-colors"
+                >
+                  초기화
+                </button>
+              </div>
             </div>
 
             {/* 메모 */}

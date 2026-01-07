@@ -7,6 +7,7 @@ import Table from '../ui/Table';
 import TransactionForm from './TransactionForm';
 import MonthlyDownloadModal from './MonthlyDownloadModal';
 import type { TransactionSummary } from '../../types';
+import { getPaymentStatus, getPaymentStatusLabel } from '../../types';
 
 export default function TransactionList() {
   const {
@@ -14,10 +15,12 @@ export default function TransactionList() {
     fetchTransactions,
     removeTransaction,
     downloadExcel,
+    markTransactionsPaid,
   } = useTransactionStore();
 
   const [search, setSearch] = useState('');
   const [selectedId, setSelectedId] = useState<number | null>(null);
+  const [selectedIds, setSelectedIds] = useState<Set<number>>(new Set());
   const [isFormOpen, setIsFormOpen] = useState(false);
   const [editingId, setEditingId] = useState<number | null>(null);
   const [isMonthlyModalOpen, setIsMonthlyModalOpen] = useState(false);
@@ -77,26 +80,139 @@ export default function TransactionList() {
     fetchTransactions();
   };
 
+  // 체크박스 핸들러
+  const handleCheckboxChange = (id: number, checked: boolean) => {
+    const newSelectedIds = new Set(selectedIds);
+    if (checked) {
+      newSelectedIds.add(id);
+    } else {
+      newSelectedIds.delete(id);
+    }
+    setSelectedIds(newSelectedIds);
+  };
+
+  const handleSelectAll = (checked: boolean) => {
+    if (checked) {
+      setSelectedIds(new Set(transactions.map((t) => t.id)));
+    } else {
+      setSelectedIds(new Set());
+    }
+  };
+
+  const handleMarkPaid = async () => {
+    if (selectedIds.size === 0) return;
+
+    const unpaidIds = Array.from(selectedIds).filter((id) => {
+      const tx = transactions.find((t) => t.id === id);
+      return tx && tx.paid_amount < tx.total_amount;
+    });
+
+    if (unpaidIds.length === 0) {
+      alert('선택한 거래가 모두 이미 완납 상태입니다.');
+      return;
+    }
+
+    if (confirm(`${unpaidIds.length}건의 거래를 완납 처리하시겠습니까?`)) {
+      await markTransactionsPaid(unpaidIds);
+      setSelectedIds(new Set());
+    }
+  };
+
+  const isAllSelected = transactions.length > 0 && selectedIds.size === transactions.length;
+  const hasUnpaidSelected = Array.from(selectedIds).some((id) => {
+    const tx = transactions.find((t) => t.id === id);
+    return tx && tx.paid_amount < tx.total_amount;
+  });
+
   const formatAmount = (amount: number) => {
     return new Intl.NumberFormat('ko-KR').format(amount) + '원';
   };
 
+  const getStatusBadgeStyle = (status: ReturnType<typeof getPaymentStatus>) => {
+    const styles = {
+      unpaid: 'bg-red-100 text-red-800',
+      partial: 'bg-yellow-100 text-yellow-800',
+      paid: 'bg-green-100 text-green-800',
+    };
+    return styles[status];
+  };
+
   const columns = [
-    { key: 'id', header: '번호', width: '80px', align: 'center' as const },
-    { key: 'display_date', header: '작성일', width: '120px', align: 'center' as const },
-    { key: 'customer_name', header: '거래처명', width: '200px' },
+    {
+      key: 'checkbox',
+      header: (
+        <input
+          type="checkbox"
+          checked={isAllSelected}
+          onChange={(e) => handleSelectAll(e.target.checked)}
+          className="w-4 h-4 rounded border-gray-300 text-gray-900 focus:ring-gray-900"
+        />
+      ),
+      width: '40px',
+      align: 'center' as const,
+      render: (item: TransactionSummary) => (
+        <input
+          type="checkbox"
+          checked={selectedIds.has(item.id)}
+          onChange={(e) => {
+            e.stopPropagation();
+            handleCheckboxChange(item.id, e.target.checked);
+          }}
+          onClick={(e) => e.stopPropagation()}
+          className="w-4 h-4 rounded border-gray-300 text-gray-900 focus:ring-gray-900"
+        />
+      ),
+    },
+    { key: 'id', header: '번호', width: '70px', align: 'center' as const },
+    { key: 'display_date', header: '작성일', width: '100px', align: 'center' as const },
+    { key: 'customer_name', header: '거래처명', width: '150px' },
     {
       key: 'total_amount',
       header: '총 금액',
-      width: '150px',
+      width: '120px',
       align: 'right' as const,
       render: (item: TransactionSummary) => formatAmount(item.total_amount),
+    },
+    {
+      key: 'paid_amount',
+      header: '받은 금액',
+      width: '120px',
+      align: 'right' as const,
+      render: (item: TransactionSummary) => formatAmount(item.paid_amount),
+    },
+    {
+      key: 'outstanding',
+      header: '미수금',
+      width: '120px',
+      align: 'right' as const,
+      render: (item: TransactionSummary) => {
+        const outstanding = Math.max(0, item.total_amount - item.paid_amount);
+        return (
+          <span className={outstanding > 0 ? 'text-red-600 font-medium' : 'text-gray-500'}>
+            {formatAmount(outstanding)}
+          </span>
+        );
+      },
+    },
+    {
+      key: 'status',
+      header: '상태',
+      width: '80px',
+      align: 'center' as const,
+      render: (item: TransactionSummary) => {
+        const status = getPaymentStatus(item.total_amount, item.paid_amount);
+        return (
+          <span className={`px-2 py-0.5 text-xs font-medium rounded-full ${getStatusBadgeStyle(status)}`}>
+            {getPaymentStatusLabel(status)}
+          </span>
+        );
+      },
     },
     { key: 'memo', header: '메모' },
     {
       key: 'actions',
       header: '',
-      width: '80px',
+      width: '60px',
       align: 'center' as const,
       render: (item: TransactionSummary) => (
         <button
@@ -127,6 +243,15 @@ export default function TransactionList() {
           >
             월별 다운로드
           </Button>
+          {selectedIds.size > 0 && hasUnpaidSelected && (
+            <Button
+              variant="secondary"
+              onClick={handleMarkPaid}
+              className="bg-green-50 text-green-700 hover:bg-green-100 border-green-200"
+            >
+              선택 완납 ({selectedIds.size}건)
+            </Button>
+          )}
         </div>
 
         <div className="flex items-center gap-2">

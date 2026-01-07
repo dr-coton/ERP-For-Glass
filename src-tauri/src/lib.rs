@@ -44,6 +44,7 @@ pub fn run() {
             commands::create_transaction,
             commands::update_transaction,
             commands::delete_transaction,
+            commands::mark_transactions_paid,
             commands::get_available_months,
             commands::download_monthly_excel,
             commands::download_transaction_excel,

@@ -69,5 +69,28 @@ pub fn init_db(conn: &Connection) -> Result<()> {
         "
     )?;
 
+    run_migrations(conn)?;
+
+    Ok(())
+}
+
+fn run_migrations(conn: &Connection) -> Result<()> {
+    // paid_amount 컬럼 존재 여부 확인
+    let has_paid_amount: bool = conn
+        .query_row(
+            "SELECT COUNT(*) FROM pragma_table_info('transactions') WHERE name = 'paid_amount'",
+            [],
+            |row| row.get::<_, i32>(0),
+        )
+        .map(|count| count > 0)
+        .unwrap_or(false);
+
+    if !has_paid_amount {
+        conn.execute(
+            "ALTER TABLE transactions ADD COLUMN paid_amount INTEGER NOT NULL DEFAULT 0",
+            [],
+        )?;
+    }
+
     Ok(())
 }

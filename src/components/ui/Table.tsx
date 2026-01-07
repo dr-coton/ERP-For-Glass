@@ -2,7 +2,7 @@ import { ReactNode } from 'react';
 
 interface Column {
   key: string;
-  header: string;
+  header: ReactNode;
   width?: string;
   align?: 'left' | 'center' | 'right';
   // eslint-disable-next-line @typescript-eslint/no-explicit-any

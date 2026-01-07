@@ -35,6 +35,7 @@ export interface Transaction {
   id?: number;
   customer_name: string;
   total_amount: number;
+  paid_amount: number;
   memo?: string;
   created_at?: string;
   display_date?: string;
@@ -45,8 +46,29 @@ export interface TransactionSummary {
   id: number;
   customer_name: string;
   total_amount: number;
+  paid_amount: number;
   memo?: string;
   display_date: string;
+}
+
+// 결제 상태 타입
+export type PaymentStatus = 'unpaid' | 'partial' | 'paid';
+
+// 결제 상태 계산
+export function getPaymentStatus(totalAmount: number, paidAmount: number): PaymentStatus {
+  if (paidAmount <= 0) return 'unpaid';
+  if (paidAmount >= totalAmount) return 'paid';
+  return 'partial';
+}
+
+// 결제 상태 한글 라벨
+export function getPaymentStatusLabel(status: PaymentStatus): string {
+  const labels: Record<PaymentStatus, string> = {
+    unpaid: '미수',
+    partial: '일부수금',
+    paid: '완납',
+  };
+  return labels[status];
 }
 
 export type View = 'transactions' | 'customers' | 'products' | 'settings' | 'statistics';

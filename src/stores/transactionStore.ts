@@ -14,6 +14,7 @@ interface TransactionState {
   addTransaction: (transaction: Transaction) => Promise<number>;
   editTransaction: (transaction: Transaction) => Promise<void>;
   removeTransaction: (id: number) => Promise<void>;
+  markTransactionsPaid: (ids: number[]) => Promise<void>;
   downloadExcel: (id: number, savePath: string) => Promise<string>;
   downloadMonthlyExcel: (
     yearMonth: string,
@@ -84,6 +85,16 @@ export const useTransactionStore = create<TransactionState>((set, get) => ({
   removeTransaction: async (id) => {
     try {
       await api.deleteTransaction(id);
+      await get().fetchTransactions();
+    } catch (error) {
+      set({ error: String(error) });
+      throw error;
+    }
+  },
+
+  markTransactionsPaid: async (ids) => {
+    try {
+      await api.markTransactionsPaid(ids);
       await get().fetchTransactions();
     } catch (error) {
       set({ error: String(error) });
