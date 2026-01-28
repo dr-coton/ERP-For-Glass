@@ -1,6 +1,6 @@
 [package]
 name = "erp-glass"
-version = "1.0.1"
+version = "1.0.2"
 description = "거래명세서 관리 시스템"
 authors = ["you"]
 edition = "2021"
